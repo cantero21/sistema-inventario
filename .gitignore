@@ -1,0 +1,11 @@
+﻿# Backend
+sistema-inventario-back/target/
+sistema-inventario-back/.env
+sistema-inventario-back/.idea/
+# Frontend
+sistema-inventario-front/node_modules/
+sistema-inventario-front/dist/
+sistema-inventario-front/.angular/
+# OS
+.DS_Store
+Thumbs.db
