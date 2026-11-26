@@ -32,11 +32,14 @@ export class AuthService {
   }
 
   register(nombre: string, email: string, password: string): Observable<any> {
-    return this.http.post(`${this.apiUrl}/register`, { nombre, email, password, rol: 'USER' });
+    return this.http.post(`${this.apiUrl}/register`, { nombre, email, password });
   }
 
   logout(): void {
-    localStorage.clear();
+    localStorage.removeItem('token');
+    localStorage.removeItem('nombre');
+    localStorage.removeItem('email');
+    localStorage.removeItem('rol');
   }
 
   // Verifica si hay un token guardado
@@ -54,5 +57,9 @@ export class AuthService {
 
   getRol(): string {
     return localStorage.getItem('rol') || '';
+  }
+
+  esAdmin(): boolean {
+    return this.getRol() === 'ADMIN';
   }
 }

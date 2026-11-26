@@ -4,24 +4,40 @@
 
 /* === VARIABLES GLOBALES === */
 :root {
-  --primary: #6c8cbf;
-  --primary-light: #e8eef6;
-  --primary-dark: #4a6a9b;
-  --accent: #e8a87c;
-  --accent-light: #fdf0e8;
-  --success: #7bc8a4;
-  --success-light: #e6f7ef;
-  --danger: #e07676;
-  --danger-light: #fde8e8;
-  --warning: #e8c86c;
-  --warning-light: #fdf6e0;
-  --bg: #f5f6fa;
-  --bg-card: #ffffff;
-  --text: #2d3748;
-  --text-light: #718096;
-  --border: #e2e8f0;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  /* === Marca / acción === */
+  --primary: #EA580C;          /* Acción principal */
+  --primary-light: #FFEDD5;    /* Derivado: tinte suave para fondos/selección */
+  --primary-dark: #C2410C;     /* Derivado: hover y texto de acento */
+  --accent: #FDBA74;           /* Acento suave */
+  --accent-light: #FFF7ED;     /* Fondo cálido */
+
+  /* === Superficies === */
+  --bg: #FFF7ED;               /* Fondo general */
+  --bg-card: #FFFFFF;          /* Tarjetas, sidebar, modales */
+  --border: #FED7AA;           /* Bordes */
+
+  /* === Texto === */
+  --text: #18181B;             /* Texto principal */
+  --text-light: #52525B;       /* Texto secundario */
+  --text-inverse: #FFFFFF;     /* Texto sobre botones/badges de color */
+
+  /* === Estados === */
+  --success: #16A34A;
+  --success-light: #DCFCE7;
+  --success-dark: #15803D;     /* Derivado: texto sobre success-light */
+  --danger: #DC2626;
+  --danger-light: #FEE2E2;
+  --danger-dark: #B91C1C;      /* Derivado: texto sobre danger-light */
+  --warning: #D97706;          /* Derivado: la paleta no define warning */
+  --warning-light: #FEF3C7;    /* Derivado */
+  --warning-dark: #B45309;     /* Derivado: texto sobre warning-light */
+
+  /* === Sombras / overlay === */
+  --shadow: 0 1px 3px rgba(24, 24, 27, 0.06);
+  --shadow-md: 0 4px 12px rgba(24, 24, 27, 0.08);
+  --shadow-lg: 0 8px 30px rgba(24, 24, 27, 0.08);
+  --overlay: rgba(24, 24, 27, 0.3);
+
   --radius: 10px;
 }
 
@@ -78,19 +94,19 @@ body {
 
 .btn-primary {
   background: var(--primary);
-  color: white;
+  color: var(--text-inverse);
 }
 .btn-primary:hover { background: var(--primary-dark); }
 
 .btn-success {
   background: var(--success);
-  color: white;
+  color: var(--text-inverse);
 }
 .btn-success:hover { opacity: 0.9; }
 
 .btn-danger {
   background: var(--danger);
-  color: white;
+  color: var(--text-inverse);
 }
 .btn-danger:hover { opacity: 0.9; }
 
@@ -134,7 +150,7 @@ table td {
 }
 
 table tr:hover {
-  background: #fafbfd;
+  background: var(--primary-light);
 }
 
 /* Formularios */
@@ -160,7 +176,7 @@ table tr:hover {
   font-family: 'DM Sans', sans-serif;
   font-size: 0.9rem;
   color: var(--text);
-  background: white;
+  background: var(--bg-card);
   transition: border-color 0.2s;
 }
 
@@ -175,7 +191,7 @@ table tr:hover {
 .modal-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -183,7 +199,7 @@ table tr:hover {
 }
 
 .modal-content {
-  background: white;
+  background: var(--bg-card);
   border-radius: var(--radius);
   padding: 28px;
   width: 100%;
@@ -213,11 +229,11 @@ table tr:hover {
 }
 .badge-entrada {
   background: var(--success-light);
-  color: #2f855a;
+  color: var(--success-dark);
 }
 .badge-salida {
   background: var(--danger-light);
-  color: #c53030;
+  color: var(--danger-dark);
 }
 
 /* Responsive */
@@ -226,4 +242,16 @@ table tr:hover {
     margin-left: 0 !important;
     padding: 16px;
   }
+}
+
+/* Ocultar spinners de los inputs numéricos */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
 }

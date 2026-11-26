@@ -21,7 +21,7 @@ import { AuthService } from './services/auth.service';
       margin-left: 240px;
       padding: 32px;
       min-height: 100vh;
-      background: #f5f6fa;
+      background: var(--bg);
     }
     .main-content.no-nav {
       margin-left: 0;

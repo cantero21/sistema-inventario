@@ -1,13 +1,16 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { ApiService, Movimiento, Producto } from '../../services/api.service';
+import { AuthService } from '../../services/auth.service';
 import { LucideAngularModule } from 'lucide-angular';
+import { PaginadorComponent } from '../paginador/paginador.component';
+import { PaginacionService } from '../../services/paginacion.service';
 
 @Component({
   selector: 'app-movimientos',
   standalone: true,
-  imports: [FormsModule, DatePipe, DecimalPipe, LucideAngularModule],
+  imports: [FormsModule, DatePipe, DecimalPipe, LucideAngularModule, PaginadorComponent],
   template: `
     <div class="page-header">
       <h1 class="page-title">
@@ -15,52 +18,66 @@ import { LucideAngularModule } from 'lucide-angular';
         Movimientos de inventario
       </h1>
       <div class="toolbar-actions">
-        <button class="btn btn-success" (click)="abrirModal('ENTRADA')">
-          <lucide-icon name="arrow-down-to-line" [size]="16"></lucide-icon> Entrada
-        </button>
+        @if (auth.esAdmin()) {
+          <button class="btn btn-success" (click)="abrirModal('ENTRADA')">
+            <lucide-icon name="arrow-down-to-line" [size]="16"></lucide-icon> Entrada
+          </button>
+        }
         <button class="btn btn-danger" (click)="abrirModal('SALIDA')">
           <lucide-icon name="arrow-up-from-line" [size]="16"></lucide-icon> Salida
         </button>
       </div>
     </div>
 
-    <div class="card table-container">
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Fecha</th>
-            <th>Tipo</th>
-            <th>Producto</th>
-            <th>Cantidad</th>
-            <th>Precio U.</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (m of movimientos; track m.id) {
+    @if (error) {
+      <div class="alert-error">{{ error }}</div>
+    }
+
+    <div class="card">
+      <div class="table-container">
+        <table>
+          <thead>
             <tr>
-              <td class="td-id">{{ m.id }}</td>
-              <td>{{ m.fecha | date:'dd/MM/yyyy HH:mm' }}</td>
-              <td>
-                <span class="badge-tipo" [class.tipo-entrada]="m.tipo === 'ENTRADA'" [class.tipo-salida]="m.tipo === 'SALIDA'">
-                  <lucide-icon [name]="m.tipo === 'ENTRADA' ? 'arrow-down-to-line' : 'arrow-up-from-line'" [size]="13"></lucide-icon>
-                  {{ m.tipo }}
-                </span>
-              </td>
-              <td><strong>{{ m.producto?.nombre || '-' }}</strong></td>
-              <td>{{ m.cantidad }}</td>
-              <td class="td-price">\${{ m.precioUnitario | number:'1.0-0' }}</td>
+              <th>ID</th>
+              <th>Fecha</th>
+              <th>Tipo</th>
+              <th>Producto</th>
+              <th>Cantidad</th>
+              <th>Precio U.</th>
             </tr>
-          } @empty {
-            <tr>
-              <td colspan="6" class="empty">
-                <lucide-icon name="arrow-right-left" [size]="32"></lucide-icon>
-                <p>No hay movimientos registrados</p>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            @for (m of movimientosPagina; track m.id) {
+              <tr>
+                <td class="td-id">{{ m.id }}</td>
+                <td>{{ m.fecha | date:'dd/MM/yyyy HH:mm' }}</td>
+                <td>
+                  <span class="badge-tipo" [class.tipo-entrada]="m.tipo === 'ENTRADA'" [class.tipo-salida]="m.tipo === 'SALIDA'">
+                    <lucide-icon [name]="m.tipo === 'ENTRADA' ? 'arrow-down-to-line' : 'arrow-up-from-line'" [size]="13"></lucide-icon>
+                    {{ m.tipo }}
+                  </span>
+                </td>
+                <td><strong>{{ m.producto?.nombre || '-' }}</strong></td>
+                <td>{{ m.cantidad }}</td>
+                <td class="td-price">\${{ m.precioUnitario | number:'1.0-0' }}</td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="6" class="empty">
+                  <lucide-icon name="arrow-right-left" [size]="32"></lucide-icon>
+                  <p>No hay movimientos registrados</p>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <app-paginador
+        [totalItems]="movimientos.length"
+        [page]="pagina"
+        [pageSize]="pageSize"
+        (pageChange)="cambiarPagina($event)"
+        (pageSizeChange)="cambiarPageSize($event)" />
     </div>
 
     @if (showModal) {
@@ -111,6 +128,16 @@ import { LucideAngularModule } from 'lucide-angular';
     }
     .page-title { margin-bottom: 0; }
     .toolbar-actions { display: flex; gap: 10px; }
+
+    .alert-error {
+      background: var(--danger-light);
+      color: var(--danger);
+      border: 1px solid var(--danger);
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 16px;
+      font-size: 0.9rem;
+    }
     .td-id { color: var(--text-light); font-size: 0.8rem; }
     .td-price { font-weight: 600; color: var(--primary-dark); }
 
@@ -126,11 +153,11 @@ import { LucideAngularModule } from 'lucide-angular';
     }
     .tipo-entrada {
       background: var(--success-light);
-      color: #2f855a;
+      color: var(--success-dark);
     }
     .tipo-salida {
       background: var(--danger-light);
-      color: #c53030;
+      color: var(--danger-dark);
     }
 
     .actions { display: flex; gap: 6px; }
@@ -159,22 +186,42 @@ export class MovimientosComponent implements OnInit {
   movimientos: Movimiento[] = [];
   productos: Producto[] = [];
 
+  private paginacion = inject(PaginacionService);
+  pagina = 1;
+  pageSize = this.paginacion.getPageSize();
+
   showModal = false;
   tipoMovimiento: 'ENTRADA' | 'SALIDA' = 'ENTRADA';
   productoId: number | null = null;
   cantidad = 1;
   precioUnitario = 0;
+  error = '';
 
-  constructor(private api: ApiService) {}
+  constructor(private api: ApiService, public auth: AuthService) {}
+
+  get movimientosPagina(): Movimiento[] {
+    return this.paginacion.paginar(this.movimientos, this.pagina, this.pageSize);
+  }
+
+  cambiarPagina(page: number) { this.pagina = page; }
+  cambiarPageSize(size: number) {
+    this.pageSize = size;
+    this.paginacion.setPageSize(size);
+    this.pagina = 1;
+  }
 
   ngOnInit() { this.cargar(); }
 
   cargar() {
-    this.api.getAll<Movimiento>('movimientos').subscribe(d => this.movimientos = d);
+    this.api.getAll<Movimiento>('movimientos').subscribe(d => {
+      this.movimientos = d;
+      this.pagina = this.paginacion.clampPage(this.pagina, d.length, this.pageSize);
+    });
     this.api.getAll<Producto>('productos').subscribe(d => this.productos = d);
   }
 
   abrirModal(tipo: 'ENTRADA' | 'SALIDA') {
+    this.error = '';
     this.tipoMovimiento = tipo;
     this.productoId = null;
     this.cantidad = 1;
@@ -183,14 +230,26 @@ export class MovimientosComponent implements OnInit {
   }
 
   guardar() {
-    if (!this.productoId) return;
+    this.error = '';
+    if (!this.productoId) {
+      this.error = 'Selecciona un producto.';
+      return;
+    }
 
     const request = this.tipoMovimiento === 'ENTRADA'
       ? this.api.crearEntrada(this.productoId, this.cantidad, this.precioUnitario)
       : this.api.crearSalida(this.productoId, this.cantidad, this.precioUnitario);
 
-    request.subscribe(() => { this.cerrarModal(); this.cargar(); });
+    request.subscribe({
+      next: () => { this.cerrarModal(); this.cargar(); },
+      error: (err) => {
+        this.error = err?.error?.detail || 'No se pudo registrar el movimiento.';
+      }
+    });
   }
 
-  cerrarModal() { this.showModal = false; }
+  cerrarModal() {
+    this.error = '';
+    this.showModal = false;
+  }
 }

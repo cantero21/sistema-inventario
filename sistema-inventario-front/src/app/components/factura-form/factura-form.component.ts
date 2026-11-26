@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { DecimalPipe } from '@angular/common';
-import { ApiService, Cliente, Producto } from '../../services/api.service';
+import { ApiService, Cliente, Factura, Producto } from '../../services/api.service';
 import { LucideAngularModule } from 'lucide-angular';
 
 @Component({
@@ -19,6 +19,10 @@ import { LucideAngularModule } from 'lucide-angular';
         <lucide-icon name="x" [size]="16"></lucide-icon> Cancelar
       </button>
     </div>
+
+    @if (error) {
+      <div class="alert-error">{{ error }}</div>
+    }
 
     <div class="card">
       <div class="form-group">
@@ -59,7 +63,7 @@ import { LucideAngularModule } from 'lucide-angular';
           </div>
           <div class="form-group item-mini">
             <label>Precio</label>
-            <input type="number" [(ngModel)]="item.precioUnitario" (ngModelChange)="calcularTotal()">
+            <p class="precio-value">\${{ item.precioUnitario | number:'1.0-0' }}</p>
           </div>
           <div class="form-group item-subtotal">
             <label>Subtotal</label>
@@ -79,7 +83,7 @@ import { LucideAngularModule } from 'lucide-angular';
       }
 
       <div class="total-section">
-        <span>Total:</span>
+        <span>Total estimado:</span>
         <strong>\${{ total | number:'1.0-0' }}</strong>
       </div>
 
@@ -97,6 +101,16 @@ import { LucideAngularModule } from 'lucide-angular';
       margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
     }
     .page-title { margin-bottom: 0; }
+
+    .alert-error {
+      background: var(--danger-light);
+      color: var(--danger);
+      border: 1px solid var(--danger);
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 16px;
+      font-size: 0.9rem;
+    }
 
     .form-group label {
       display: flex;
@@ -139,6 +153,13 @@ import { LucideAngularModule } from 'lucide-angular';
       padding: 10px 0;
     }
 
+    .precio-value {
+      font-weight: 600;
+      color: var(--text);
+      font-size: 0.9rem;
+      padding: 10px 0;
+    }
+
     .item-remove {
       margin-bottom: 16px;
     }
@@ -149,7 +170,7 @@ import { LucideAngularModule } from 'lucide-angular';
       cursor: pointer; transition: all 0.2s; background: transparent;
     }
     .btn-icon-delete { color: var(--danger); background: var(--danger-light); }
-    .btn-icon-delete:hover { background: var(--danger); color: white; }
+    .btn-icon-delete:hover { background: var(--danger); color: var(--text-inverse); }
 
     .empty-items {
       text-align: center;
@@ -207,6 +228,7 @@ export class FacturaFormComponent implements OnInit {
   productos: Producto[] = [];
   clienteId: number | null = null;
   total = 0;
+  error = '';
 
   items: { productoId: number | null; cantidad: number; precioUnitario: number }[] = [];
 
@@ -240,21 +262,44 @@ export class FacturaFormComponent implements OnInit {
   }
 
   guardar() {
+    this.error = '';
+
+    if (!this.clienteId) {
+      this.error = 'Selecciona un cliente.';
+      return;
+    }
+
+    const itemsValidos = this.items.filter(i => i.productoId);
+    if (itemsValidos.length === 0) {
+      this.error = 'Agrega al menos un producto a la factura.';
+      return;
+    }
+
+    for (const item of itemsValidos) {
+      const producto = this.productos.find(p => p.id === item.productoId);
+      if (producto && item.cantidad > producto.stock) {
+        this.error = `Stock insuficiente para ${producto.nombre} (disponible: ${producto.stock}).`;
+        return;
+      }
+    }
+
     const factura = {
       fecha: new Date().toISOString().split('T')[0],
-      cliente: { id: this.clienteId },
-      total: this.total,
-      items: this.items
-        .filter(i => i.productoId)
-        .map(i => ({
-          producto: { id: i.productoId },
-          cantidad: i.cantidad,
-          precioUnitario: i.precioUnitario
-        }))
+      clienteId: this.clienteId,
+      items: itemsValidos.map(i => ({
+        productoId: i.productoId,
+        cantidad: i.cantidad
+      }))
     };
 
-    this.api.create('facturas', factura).subscribe(() => {
-      this.router.navigate(['/facturas']);
+    this.api.create<any>('facturas', factura).subscribe({
+      next: (response: Factura) => {
+        alert('Factura creada. Total: $' + response.total);
+        this.router.navigate(['/facturas']);
+      },
+      error: (err) => {
+        this.error = err?.error?.detail || 'No se pudo guardar la factura.';
+      }
     });
   }
 }

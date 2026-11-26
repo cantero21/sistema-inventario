@@ -15,7 +15,7 @@ import { LucideAngularModule } from 'lucide-angular';
           <div class="login-logo">
             <lucide-icon name="box" [size]="32"></lucide-icon>
           </div>
-          <h1>Sistema de Inventario</h1>
+          <h1>Fercell</h1>
           <p>Ingresa tus credenciales</p>
         </div>
 
@@ -68,14 +68,14 @@ import { LucideAngularModule } from 'lucide-angular';
       display: flex;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(135deg, #e8eef6 0%, #f5f6fa 50%, #fdf0e8 100%);
+      background: linear-gradient(135deg, var(--primary-light) 0%, var(--bg) 50%, var(--accent-light) 100%);
       padding: 16px;
     }
     .login-card {
-      background: white;
+      background: var(--bg-card);
       padding: 40px;
       border-radius: 16px;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+      box-shadow: var(--shadow-lg);
       width: 100%;
       max-width: 420px;
     }

@@ -27,6 +27,33 @@ import { LucideAngularModule } from 'lucide-angular';
           </div>
         </div>
 
+        <!-- NUEVO CAMPO: APELLIDOS -->
+        <div class="form-group">
+          <label>Apellidos</label>
+          <div class="input-icon">
+            <lucide-icon name="users" [size]="16" class="field-icon"></lucide-icon>
+            <input type="text" [(ngModel)]="apellidos" placeholder="Tus apellidos">
+          </div>
+        </div>
+
+        <!-- NUEVO CAMPO: CÉDULA -->
+        <div class="form-group">
+          <label>Cédula</label>
+          <div class="input-icon">
+            <lucide-icon name="credit-card" [size]="16" class="field-icon"></lucide-icon>
+            <input type="text" [(ngModel)]="cedula" placeholder="Número de documento">
+          </div>
+        </div>
+
+        <!-- NUEVO CAMPO: FECHA DE NACIMIENTO -->
+        <div class="form-group">
+          <label>Fecha de Nacimiento</label>
+          <div class="input-icon">
+            <lucide-icon name="calendar" [size]="16" class="field-icon"></lucide-icon>
+            <input type="date" [(ngModel)]="fechaNacimiento">
+          </div>
+        </div>
+
         <div class="form-group">
           <label>Email</label>
           <div class="input-icon">
@@ -41,7 +68,8 @@ import { LucideAngularModule } from 'lucide-angular';
             <lucide-icon name="lock" [size]="16" class="field-icon"></lucide-icon>
             <input [type]="showPassword ? 'text' : 'password'"
                    [(ngModel)]="password"
-                   placeholder="Mínimo 6 caracteres"
+                   minlength="8"
+                   placeholder="Mínimo 8 caracteres"
                    (keyup.enter)="register()">
             <button class="toggle-pass" (click)="showPassword = !showPassword">
               <lucide-icon [name]="showPassword ? 'eye-off' : 'eye'" [size]="16"></lucide-icon>
@@ -83,14 +111,14 @@ import { LucideAngularModule } from 'lucide-angular';
       display: flex;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(135deg, #e8eef6 0%, #f5f6fa 50%, #fdf0e8 100%);
+      background: linear-gradient(135deg, var(--primary-light) 0%, var(--bg) 50%, var(--accent-light) 100%);
       padding: 16px;
     }
     .login-card {
-      background: white;
+      background: var(--bg-card);
       padding: 40px;
       border-radius: 16px;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+      box-shadow: var(--shadow-lg);
       width: 100%;
       max-width: 420px;
     }
@@ -177,7 +205,7 @@ import { LucideAngularModule } from 'lucide-angular';
       align-items: center;
       justify-content: center;
       gap: 6px;
-      color: #2f855a;
+      color: var(--success-dark);
       background: var(--success-light);
       padding: 10px;
       border-radius: 8px;
@@ -205,6 +233,9 @@ import { LucideAngularModule } from 'lucide-angular';
 })
 export class RegisterComponent {
   nombre = '';
+  apellidos = ''; // Nueva variable
+  cedula = ''; // Nueva variable
+  fechaNacimiento = ''; // Nueva variable
   email = '';
   password = '';
   error = '';
@@ -218,6 +249,13 @@ export class RegisterComponent {
     this.loading = true;
     this.error = '';
     this.success = '';
+
+    // Aquí podrías agregar una validación simple para simular el error
+    if (!this.nombre || !this.email || this.password.length < 8) {
+       this.error = 'Completa todos los campos. La contraseña debe tener al menos 8 caracteres.';
+       this.loading = false;
+       return;
+    }
 
     this.auth.register(this.nombre, this.email, this.password).subscribe({
       next: () => {

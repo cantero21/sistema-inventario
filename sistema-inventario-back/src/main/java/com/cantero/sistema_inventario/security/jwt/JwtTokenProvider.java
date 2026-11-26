@@ -2,49 +2,47 @@ package com.cantero.sistema_inventario.security.jwt;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 @Component
 public class JwtTokenProvider {
 
+    private final SecretKey key;
+    private final long expirationMillis;
 
-    private final String SECRET_KEY = "MiClaveSecretaMuySeguraParaFirmarElToken123456789";
+    public JwtTokenProvider(@Value("${jwt.secret}") String secret,
+                            @Value("${jwt.expiration}") long expirationMillis) {
+        if (secret == null || secret.getBytes(StandardCharsets.UTF_8).length < 32) {
+            throw new IllegalStateException("jwt.secret debe tener al menos 32 bytes (256 bits)");
+        }
+        this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        this.expirationMillis = expirationMillis;
+    }
 
-
-    private final long EXPIRATION_TIME = 86400000;
-
-
-    public String generarToken(String email, String rol) {
+    public String generarToken(String email) {
         Date ahora = new Date();
-        Date expiracion = new Date(ahora.getTime() + EXPIRATION_TIME);
-
-
         return Jwts.builder()
                 .setSubject(email)
-                .claim("rol", rol)
                 .setIssuedAt(ahora)
-                .setExpiration(expiracion)
-                .signWith(SignatureAlgorithm.HS256, SECRET_KEY)
+                .setExpiration(new Date(ahora.getTime() + expirationMillis))
+                .signWith(key)
                 .compact();
     }
 
-
     public String obtenerEmailDelToken(String token) {
-        return getAllClaims(token).getSubject();
+        return getClaims(token).getSubject();
     }
 
-
-    public String obtenerRolDelToken(String token) {
-        return (String) getAllClaims(token).get("rol");
-    }
-
-
-    private Claims getAllClaims(String token) {
-        return Jwts.parser()
-                .setSigningKey(SECRET_KEY)
+    private Claims getClaims(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
                 .parseClaimsJws(token)
                 .getBody();
     }

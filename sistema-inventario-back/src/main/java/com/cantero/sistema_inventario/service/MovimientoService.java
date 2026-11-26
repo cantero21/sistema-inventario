@@ -1,8 +1,15 @@
 package com.cantero.sistema_inventario.service;
 
-import com.cantero.sistema_inventario.model.*;
-import com.cantero.sistema_inventario.repository.*;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.cantero.sistema_inventario.dto.MovimientoResponse;
+import com.cantero.sistema_inventario.exception.ApiException;
+import com.cantero.sistema_inventario.model.Factura;
+import com.cantero.sistema_inventario.model.Movimiento;
+import com.cantero.sistema_inventario.model.Producto;
+import com.cantero.sistema_inventario.model.TipoMovimiento;
+import com.cantero.sistema_inventario.repository.MovimientoRepository;
+import com.cantero.sistema_inventario.repository.ProductoRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -10,27 +17,22 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class MovimientoService {
 
-    @Autowired
-    private MovimientoRepository movimientoRepository;
-
-    @Autowired
-    private ProductoRepository productoRepository;
-
+    private final MovimientoRepository movimientoRepository;
+    private final ProductoRepository productoRepository;
 
     @Transactional
-    public Movimiento crearMovimientoEntrada(Long productoId, Integer cantidad, Double precioUnitario) {
-        Producto producto = productoRepository.findById(productoId)
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
-
+    public MovimientoResponse crearMovimientoEntrada(Long productoId, Integer cantidad, Double precioUnitario) {
+        validarCantidad(cantidad);
+        Producto producto = obtenerProducto(productoId);
 
         int nuevoStock = (producto.getStock() == null ? 0 : producto.getStock()) + cantidad;
         producto.setStock(nuevoStock);
         productoRepository.save(producto);
 
-
-        Movimiento m = Movimiento.builder()
+        Movimiento movimiento = Movimiento.builder()
                 .fecha(LocalDateTime.now())
                 .tipo(TipoMovimiento.ENTRADA)
                 .cantidad(cantidad)
@@ -38,27 +40,25 @@ public class MovimientoService {
                 .producto(producto)
                 .build();
 
-        return movimientoRepository.save(m);
+        return MovimientoResponse.from(movimientoRepository.save(movimiento));
     }
 
-
     @Transactional
-    public Movimiento crearMovimientoSalida(Long productoId, Integer cantidad, Double precioUnitario, Factura factura) {
-        Producto producto = productoRepository.findById(productoId)
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
-
-        int stockActual = (producto.getStock() == null ? 0 : producto.getStock());
+    public MovimientoResponse crearMovimientoSalida(Long productoId, Integer cantidad,
+                                                    Double precioUnitario, Factura factura) {
+        validarCantidad(cantidad);
+        Producto producto = obtenerProducto(productoId);
+        int stockActual = producto.getStock() == null ? 0 : producto.getStock();
 
         if (stockActual < cantidad) {
-            throw new RuntimeException("Stock insuficiente para el producto: " + producto.getNombre());
+            throw new ApiException(HttpStatus.CONFLICT, "STOCK_INSUFICIENTE",
+                    "Stock insuficiente para el producto: " + producto.getNombre());
         }
-
 
         producto.setStock(stockActual - cantidad);
         productoRepository.save(producto);
 
-
-        Movimiento m = Movimiento.builder()
+        Movimiento movimiento = Movimiento.builder()
                 .fecha(LocalDateTime.now())
                 .tipo(TipoMovimiento.SALIDA)
                 .cantidad(cantidad)
@@ -67,16 +67,33 @@ public class MovimientoService {
                 .factura(factura)
                 .build();
 
-        return movimientoRepository.save(m);
+        return MovimientoResponse.from(movimientoRepository.save(movimiento));
     }
 
-
-    public List<Movimiento> listarTodos() {
-        return movimientoRepository.findAllByOrderByFechaDesc();
+    @Transactional(readOnly = true)
+    public List<MovimientoResponse> listarTodos() {
+        return movimientoRepository.findAllByOrderByFechaDesc().stream()
+                .map(MovimientoResponse::from)
+                .toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<MovimientoResponse> listarPorProducto(Long productoId) {
+        return movimientoRepository.findByProductoIdOrderByFechaDesc(productoId).stream()
+                .map(MovimientoResponse::from)
+                .toList();
+    }
 
-    public List<Movimiento> listarPorProducto(Long productoId) {
-        return movimientoRepository.findByProductoIdOrderByFechaDesc(productoId);
+    private void validarCantidad(Integer cantidad) {
+        if (cantidad == null || cantidad <= 0) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "CANTIDAD_INVALIDA",
+                    "La cantidad debe ser mayor a 0");
+        }
+    }
+
+    private Producto obtenerProducto(Long productoId) {
+        return productoRepository.findByIdForUpdate(productoId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND,
+                        "PRODUCTO_NO_ENCONTRADO", "Producto no encontrado con id " + productoId));
     }
 }

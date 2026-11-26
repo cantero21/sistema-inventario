@@ -1,8 +1,10 @@
 package com.cantero.sistema_inventario.controller;
 
-import com.cantero.sistema_inventario.model.Factura;
+import com.cantero.sistema_inventario.dto.FacturaRequest;
+import com.cantero.sistema_inventario.dto.FacturaResponse;
 import com.cantero.sistema_inventario.service.FacturaService;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -12,31 +14,30 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/facturas")
+@RequiredArgsConstructor
 public class FacturaController {
 
-    @Autowired
-    private FacturaService facturaService;
+    private final FacturaService facturaService;
 
     @GetMapping
-    public ResponseEntity<List<Factura>> getAll() {
+    public ResponseEntity<List<FacturaResponse>> getAll() {
         return ResponseEntity.ok(facturaService.getAll());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Factura> getById(@PathVariable Long id) {
-        Factura factura = facturaService.getByIdConDetalles(id);
-        return factura != null ? ResponseEntity.ok(factura) : ResponseEntity.notFound().build();
+    public ResponseEntity<FacturaResponse> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(facturaService.getById(id));
     }
 
     @PostMapping
-    public ResponseEntity<Factura> create(@RequestBody Factura factura) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(facturaService.save(factura));
+    public ResponseEntity<FacturaResponse> create(@Valid @RequestBody FacturaRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(facturaService.save(request));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Factura> update(@PathVariable Long id, @RequestBody Factura factura) {
-        Factura updated = facturaService.update(id, factura);
-        return updated != null ? ResponseEntity.ok(updated) : ResponseEntity.notFound().build();
+    public ResponseEntity<FacturaResponse> update(@PathVariable Long id,
+                                                  @Valid @RequestBody FacturaRequest request) {
+        return ResponseEntity.ok(facturaService.update(id, request));
     }
 
     @DeleteMapping("/{id}")
@@ -44,7 +45,6 @@ public class FacturaController {
         facturaService.delete(id);
         return ResponseEntity.noContent().build();
     }
-
 
     @PostMapping("/anular/{id}")
     public ResponseEntity<Map<String, String>> anularFactura(@PathVariable Long id) {

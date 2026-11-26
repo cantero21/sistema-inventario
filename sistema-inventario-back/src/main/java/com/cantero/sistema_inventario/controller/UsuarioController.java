@@ -1,9 +1,10 @@
 package com.cantero.sistema_inventario.controller;
 
-import com.cantero.sistema_inventario.model.Usuario;
+import com.cantero.sistema_inventario.dto.UsuarioRequest;
+import com.cantero.sistema_inventario.dto.UsuarioResponse;
 import com.cantero.sistema_inventario.service.UsuarioService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -12,31 +13,30 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/usuarios")
+@RequiredArgsConstructor
 public class UsuarioController {
 
-    @Autowired
-    private UsuarioService usuarioService;
+    private final UsuarioService usuarioService;
 
     @GetMapping
-    public ResponseEntity<List<Usuario>> getAll() {
+    public ResponseEntity<List<UsuarioResponse>> getAll() {
         return ResponseEntity.ok(usuarioService.getAll());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Usuario> getById(@PathVariable Long id) {
-        Usuario usuario = usuarioService.getById(id);
-        return usuario != null ? ResponseEntity.ok(usuario) : ResponseEntity.notFound().build();
+    public ResponseEntity<UsuarioResponse> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(usuarioService.getById(id));
     }
 
     @PostMapping
-    public ResponseEntity<Usuario> create(@Valid @RequestBody Usuario usuario) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(usuarioService.save(usuario));
+    public ResponseEntity<UsuarioResponse> create(@Valid @RequestBody UsuarioRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(usuarioService.create(request));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Usuario> update(@PathVariable Long id, @Valid @RequestBody Usuario usuario) {
-        Usuario updated = usuarioService.update(id, usuario);
-        return updated != null ? ResponseEntity.ok(updated) : ResponseEntity.notFound().build();
+    public ResponseEntity<UsuarioResponse> update(@PathVariable Long id,
+                                                  @Valid @RequestBody UsuarioRequest request) {
+        return ResponseEntity.ok(usuarioService.update(id, request));
     }
 
     @DeleteMapping("/{id}")

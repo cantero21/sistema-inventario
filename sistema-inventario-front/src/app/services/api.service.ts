@@ -11,12 +11,22 @@ export interface Categoria {
   descripcion: string;
 }
 
+export interface CategoriaResumen {
+  id?: number;
+  nombre: string;
+}
+
 export interface Proveedor {
   id?: number;
   nombre: string;
   direccion: string;
   telefono: string;
   email: string;
+}
+
+export interface ProveedorResumen {
+  id?: number;
+  nombre: string;
 }
 
 export interface Cliente {
@@ -33,8 +43,15 @@ export interface Producto {
   descripcion: string;
   precio: number;
   stock: number;
-  categoria?: Categoria;
-  proveedor?: Proveedor;
+  categoria?: CategoriaResumen;
+  proveedor?: ProveedorResumen;
+}
+
+export interface ProductoResumen {
+  id?: number;
+  nombre: string;
+  precio: number;
+  stock: number;
 }
 
 export interface Usuario {
@@ -48,8 +65,10 @@ export interface FacturaItem {
   id?: number;
   cantidad: number;
   precioUnitario: number;
-  producto?: Producto;
+  producto?: ProductoResumen;
 }
+
+export type EstadoFactura = 'ACTIVA' | 'ANULADA';
 
 export interface Factura {
   id?: number;
@@ -57,6 +76,9 @@ export interface Factura {
   cliente?: Cliente;
   usuario?: Usuario;
   total: number;
+  estado: EstadoFactura;
+  fechaAnulacion: string | null;
+  usuarioAnulacion: string | null;
   items: FacturaItem[];
 }
 
@@ -66,7 +88,7 @@ export interface Movimiento {
   tipo: 'ENTRADA' | 'SALIDA';
   cantidad: number;
   precioUnitario: number;
-  producto?: Producto;
+  producto?: ProductoResumen;
 }
 
 export interface DashboardTotales {
@@ -74,6 +96,16 @@ export interface DashboardTotales {
   cliente: number;
   proveedor: number;
   factura: number;
+}
+
+export interface VentaPorDia {
+  fecha: string;
+  total: number;
+}
+
+export interface StockBajo {
+  nombre: string;
+  stock: number;
 }
 
 // Servicio genérico que sirve para cualquier entidad CRUD
@@ -87,6 +119,16 @@ export class ApiService {
   // === DASHBOARD ===
   getDashboardTotales(): Observable<DashboardTotales> {
     return this.http.get<DashboardTotales>(`${this.apiUrl}/dashboard/totales`);
+  }
+
+  getVentasPorDia(): Observable<VentaPorDia[]> {
+    return this.http.get<VentaPorDia[]>(`${this.apiUrl}/dashboard/ventas-por-dia`);
+  }
+
+  getStockBajo(umbral = 10): Observable<StockBajo[]> {
+    return this.http.get<StockBajo[]>(`${this.apiUrl}/dashboard/stock-bajo`, {
+      params: { umbral }
+    });
   }
 
   // === MÉTODOS GENÉRICOS CRUD ===
@@ -114,7 +156,7 @@ export class ApiService {
   // === MOVIMIENTOS (endpoints especiales) ===
   crearEntrada(productoId: number, cantidad: number, precioUnitario: number): Observable<Movimiento> {
     return this.http.post<Movimiento>(`${this.apiUrl}/movimientos/entrada`, {
-      producto: { id: productoId },
+      productoId,
       cantidad,
       precioUnitario
     });
@@ -122,7 +164,7 @@ export class ApiService {
 
   crearSalida(productoId: number, cantidad: number, precioUnitario: number): Observable<Movimiento> {
     return this.http.post<Movimiento>(`${this.apiUrl}/movimientos/salida`, {
-      producto: { id: productoId },
+      productoId,
       cantidad,
       precioUnitario
     });

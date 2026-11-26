@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './guards/auth.guard';
+import { adminGuard } from './guards/admin.guard';
 
 export const routes: Routes = [
   { path: 'login', loadComponent: () => import('./components/login/login.component').then(m => m.LoginComponent) },
@@ -14,7 +15,7 @@ export const routes: Routes = [
   { path: 'facturas', loadComponent: () => import('./components/facturas/facturas.component').then(m => m.FacturasComponent), canActivate: [authGuard] },
   { path: 'facturas/nueva', loadComponent: () => import('./components/factura-form/factura-form.component').then(m => m.FacturaFormComponent), canActivate: [authGuard] },
   { path: 'movimientos', loadComponent: () => import('./components/movimientos/movimientos.component').then(m => m.MovimientosComponent), canActivate: [authGuard] },
-  { path: 'usuarios', loadComponent: () => import('./components/usuarios/usuarios.component').then(m => m.UsuariosComponent), canActivate: [authGuard] },
+  { path: 'usuarios', loadComponent: () => import('./components/usuarios/usuarios.component').then(m => m.UsuariosComponent), canActivate: [adminGuard] },
 
   // Ruta por defecto
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' },

@@ -1,11 +1,28 @@
-﻿# Backend
+﻿# === BACKEND ===
 sistema-inventario-back/target/
-sistema-inventario-back/.env
-sistema-inventario-back/.idea/
-# Frontend
+*.class
+*.log
+
+# === FRONTEND ===
 sistema-inventario-front/node_modules/
 sistema-inventario-front/dist/
 sistema-inventario-front/.angular/
-# OS
+
+# === SECRETOS Y ENTORNOS ===
+.env
+*.env
+
+# === IDEs ===
+.idea/
+.vscode/
+*.iml
+
+# === SISTEMA ===
 .DS_Store
 Thumbs.db
+
+# === ARCHIVOS DE AYUDA EN LA RAÍZ ===
+# Esto ignora cualquier archivo .txt, .pdf o .sql en la raíz
+/*.txt
+/*.pdf
+/*.sql

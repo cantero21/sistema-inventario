@@ -1,73 +1,94 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService, Producto, Categoria, Proveedor } from '../../services/api.service';
+import { AuthService } from '../../services/auth.service';
 import { DecimalPipe } from '@angular/common';
 import { LucideAngularModule } from 'lucide-angular';
+import { PaginadorComponent } from '../paginador/paginador.component';
+import { PaginacionService } from '../../services/paginacion.service';
 
 @Component({
   selector: 'app-productos',
   standalone: true,
-  imports: [FormsModule, DecimalPipe, LucideAngularModule],
+  imports: [FormsModule, DecimalPipe, LucideAngularModule, PaginadorComponent],
   template: `
     <div class="page-header">
       <h1 class="page-title">
         <lucide-icon name="package" [size]="24"></lucide-icon>
         Productos
       </h1>
-      <button class="btn btn-primary" (click)="abrirModal()">
-        <lucide-icon name="plus" [size]="16"></lucide-icon> Nuevo producto
-      </button>
+      @if (auth.esAdmin()) {
+        <button class="btn btn-primary" (click)="abrirModal()">
+          <lucide-icon name="plus" [size]="16"></lucide-icon> Nuevo producto
+        </button>
+      }
     </div>
 
-    <div class="card table-container">
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Nombre</th>
-            <th>Descripción</th>
-            <th>Precio</th>
-            <th>Stock</th>
-            <th>Categoría</th>
-            <th>Proveedor</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (p of productos; track p.id) {
+    @if (error) {
+      <div class="alert-error">{{ error }}</div>
+    }
+
+    <div class="card">
+      <div class="table-container">
+        <table>
+          <thead>
             <tr>
-              <td class="td-id">{{ p.id }}</td>
-              <td><strong>{{ p.nombre }}</strong></td>
-              <td class="td-desc">{{ p.descripcion || '-' }}</td>
-              <td class="td-price">\${{ p.precio | number:'1.0-0' }}</td>
-              <td>
-                <span class="badge" [class.badge-entrada]="p.stock > 5" [class.badge-salida]="p.stock <= 5">
-                  {{ p.stock }} uds
-                </span>
-              </td>
-              <td>{{ p.categoria?.nombre || '-' }}</td>
-              <td>{{ p.proveedor?.nombre || '-' }}</td>
-              <td>
-                <div class="actions">
-                  <button class="btn-icon btn-icon-edit" title="Editar" (click)="editar(p)">
-                    <lucide-icon name="pencil" [size]="15"></lucide-icon>
-                  </button>
-                  <button class="btn-icon btn-icon-delete" title="Eliminar" (click)="eliminar(p.id!)">
-                    <lucide-icon name="trash-2" [size]="15"></lucide-icon>
-                  </button>
-                </div>
-              </td>
+              <th>ID</th>
+              <th>Nombre</th>
+              <th>Descripción</th>
+              <th>Precio</th>
+              <th>Stock</th>
+              <th>Categoría</th>
+              <th>Proveedor</th>
+              @if (auth.esAdmin()) {
+                <th>Acciones</th>
+              }
             </tr>
-          } @empty {
-            <tr>
-              <td colspan="8" class="empty">
-                <lucide-icon name="package" [size]="32"></lucide-icon>
-                <p>No hay productos registrados</p>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            @for (p of productosPagina; track p.id) {
+              <tr>
+                <td class="td-id">{{ p.id }}</td>
+                <td><strong>{{ p.nombre }}</strong></td>
+                <td class="td-desc">{{ p.descripcion || '-' }}</td>
+                <td class="td-price">\${{ p.precio | number:'1.0-0' }}</td>
+                <td>
+                  <span class="badge" [class.badge-entrada]="p.stock > 5" [class.badge-salida]="p.stock <= 5">
+                    {{ p.stock }} uds
+                  </span>
+                </td>
+                <td>{{ p.categoria?.nombre || '-' }}</td>
+                <td>{{ p.proveedor?.nombre || '-' }}</td>
+                @if (auth.esAdmin()) {
+                  <td>
+                    <div class="actions">
+                      <button class="btn-icon btn-icon-edit" title="Editar" (click)="editar(p)">
+                        <lucide-icon name="pencil" [size]="15"></lucide-icon>
+                      </button>
+                      <button class="btn-icon btn-icon-delete" title="Eliminar" (click)="eliminar(p.id!)">
+                        <lucide-icon name="trash-2" [size]="15"></lucide-icon>
+                      </button>
+                    </div>
+                  </td>
+                }
+              </tr>
+            } @empty {
+              <tr>
+                <td [attr.colspan]="auth.esAdmin() ? 8 : 7" class="empty">
+                  <lucide-icon name="package" [size]="32"></lucide-icon>
+                  <p>No hay productos registrados</p>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <app-paginador
+        [totalItems]="productos.length"
+        [page]="pagina"
+        [pageSize]="pageSize"
+        (pageChange)="cambiarPagina($event)"
+        (pageSizeChange)="cambiarPageSize($event)" />
     </div>
 
     <!-- Modal -->
@@ -99,7 +120,10 @@ import { LucideAngularModule } from 'lucide-angular';
             </div>
             <div class="form-group">
               <label>Stock</label>
-              <input type="number" [(ngModel)]="form.stock" placeholder="0">
+              <input type="number" [(ngModel)]="form.stock" placeholder="0" [disabled]="editando">
+              @if (editando) {
+                <small class="hint">El stock se ajusta con movimientos de entrada o salida.</small>
+              }
             </div>
           </div>
           <div class="form-group">
@@ -121,6 +145,10 @@ import { LucideAngularModule } from 'lucide-angular';
             </select>
           </div>
 
+          @if (error) {
+            <div class="alert-error">{{ error }}</div>
+          }
+
           <div class="modal-actions">
             <button class="btn btn-secondary" (click)="cerrarModal()">Cancelar</button>
             <button class="btn btn-primary" (click)="guardar()">
@@ -141,6 +169,17 @@ import { LucideAngularModule } from 'lucide-angular';
       gap: 12px;
     }
     .page-title { margin-bottom: 0; }
+
+    .alert-error {
+      background: var(--danger-light);
+      color: var(--danger);
+      border: 1px solid var(--danger);
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 16px;
+      font-size: 0.9rem;
+    }
+    .hint { display: block; margin-top: 6px; color: var(--text-light); font-size: 0.78rem; }
 
     /* Columnas específicas */
     .td-id { color: var(--text-light); font-size: 0.8rem; }
@@ -166,7 +205,7 @@ import { LucideAngularModule } from 'lucide-angular';
     }
     .btn-icon-edit:hover {
       background: var(--primary);
-      color: white;
+      color: var(--text-inverse);
     }
     .btn-icon-delete {
       color: var(--danger);
@@ -174,7 +213,7 @@ import { LucideAngularModule } from 'lucide-angular';
     }
     .btn-icon-delete:hover {
       background: var(--danger);
-      color: white;
+      color: var(--text-inverse);
     }
 
     /* Empty state */
@@ -225,6 +264,10 @@ export class ProductosComponent implements OnInit {
   categorias: Categoria[] = [];
   proveedores: Proveedor[] = [];
 
+  private paginacion = inject(PaginacionService);
+  pagina = 1;
+  pageSize = this.paginacion.getPageSize();
+
   showModal = false;
   editando = false;
   productoId: number | null = null;
@@ -232,20 +275,36 @@ export class ProductosComponent implements OnInit {
   form: Producto = { nombre: '', descripcion: '', precio: 0, stock: 0 };
   categoriaSeleccionada: number | null = null;
   proveedorSeleccionado: number | null = null;
+  error = '';
 
-  constructor(private api: ApiService) {}
+  constructor(private api: ApiService, public auth: AuthService) {}
+
+  get productosPagina(): Producto[] {
+    return this.paginacion.paginar(this.productos, this.pagina, this.pageSize);
+  }
+
+  cambiarPagina(page: number) { this.pagina = page; }
+  cambiarPageSize(size: number) {
+    this.pageSize = size;
+    this.paginacion.setPageSize(size);
+    this.pagina = 1;
+  }
 
   ngOnInit() {
     this.cargarDatos();
   }
 
   cargarDatos() {
-    this.api.getAll<Producto>('productos').subscribe(data => this.productos = data);
+    this.api.getAll<Producto>('productos').subscribe(data => {
+      this.productos = data;
+      this.pagina = this.paginacion.clampPage(this.pagina, data.length, this.pageSize);
+    });
     this.api.getAll<Categoria>('categorias').subscribe(data => this.categorias = data);
     this.api.getAll<Proveedor>('proveedores').subscribe(data => this.proveedores = data);
   }
 
   abrirModal() {
+    this.error = '';
     this.form = { nombre: '', descripcion: '', precio: 0, stock: 0 };
     this.categoriaSeleccionada = null;
     this.proveedorSeleccionado = null;
@@ -255,6 +314,7 @@ export class ProductosComponent implements OnInit {
   }
 
   editar(p: Producto) {
+    this.error = '';
     this.form = { ...p };
     this.categoriaSeleccionada = p.categoria?.id || null;
     this.proveedorSeleccionado = p.proveedor?.id || null;
@@ -264,29 +324,45 @@ export class ProductosComponent implements OnInit {
   }
 
   guardar() {
+    this.error = '';
     const data: any = {
-      ...this.form,
-      categoria: this.categoriaSeleccionada ? { id: this.categoriaSeleccionada } : null,
-      proveedor: this.proveedorSeleccionado ? { id: this.proveedorSeleccionado } : null
+      nombre: this.form.nombre,
+      descripcion: this.form.descripcion,
+      precio: this.form.precio,
+      stock: this.form.stock,
+      categoriaId: this.categoriaSeleccionada,
+      proveedorId: this.proveedorSeleccionado
     };
 
     const request = this.editando
       ? this.api.update<Producto>('productos', this.productoId!, data)
       : this.api.create<Producto>('productos', data);
 
-    request.subscribe(() => {
-      this.cerrarModal();
-      this.cargarDatos();
+    request.subscribe({
+      next: () => {
+        this.cerrarModal();
+        this.cargarDatos();
+      },
+      error: (err) => {
+        this.error = err?.error?.detail || 'No se pudo guardar el producto.';
+      }
     });
   }
 
   eliminar(id: number) {
     if (confirm('¿Estás seguro de eliminar este producto?')) {
-      this.api.delete('productos', id).subscribe(() => this.cargarDatos());
+      this.error = '';
+      this.api.delete('productos', id).subscribe({
+        next: () => this.cargarDatos(),
+        error: (err) => {
+          this.error = err?.error?.detail || 'No se pudo eliminar el producto.';
+        }
+      });
     }
   }
 
   cerrarModal() {
+    this.error = '';
     this.showModal = false;
   }
 }

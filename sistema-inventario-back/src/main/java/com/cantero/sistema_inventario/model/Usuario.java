@@ -1,7 +1,6 @@
 package com.cantero.sistema_inventario.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -29,15 +28,13 @@ public class Usuario {
     @Column(unique = true)
     private String email;
 
-
     @JsonIgnore
     private String password;
 
     private String rol;
 
-
     @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonIgnore
+    @JsonIgnore // Evita bucle infinito al pedir un Usuario
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     private List<Factura> facturas = new ArrayList<>();

@@ -19,16 +19,16 @@ import { LucideAngularModule } from 'lucide-angular';
     }
 
     <nav class="sidebar" [class.sidebar-open]="menuAbierto">
-      <div class="sidebar-header">
+      <a class="sidebar-header" routerLink="/dashboard" routerLinkActive="active" (click)="cerrarMenu()">
         <lucide-icon name="box" [size]="24" class="logo-icon"></lucide-icon>
-        <h2>Inventario</h2>
-      </div>
+        <h2>Fercell</h2>
+      </a>
 
       <div class="user-info">
         <div class="user-avatar">{{ auth.getNombre().charAt(0).toUpperCase() }}</div>
         <div>
           <p class="user-name">{{ auth.getNombre() }}</p>
-          <p class="user-role">{{ auth.getRol() }}</p>
+          <p class="user-role">{{ auth.getRol() === 'ADMIN' ? 'Administrador' : 'Usuario' }}</p>
         </div>
       </div>
 
@@ -68,11 +68,13 @@ import { LucideAngularModule } from 'lucide-angular';
             <lucide-icon name="arrow-right-left" [size]="18"></lucide-icon> Movimientos
           </a>
         </li>
-        <li>
-          <a routerLink="/usuarios" routerLinkActive="active" (click)="cerrarMenu()">
-            <lucide-icon name="settings" [size]="18"></lucide-icon> Usuarios
-          </a>
-        </li>
+        @if (auth.esAdmin()) {
+          <li>
+            <a routerLink="/usuarios" routerLinkActive="active" (click)="cerrarMenu()">
+              <lucide-icon name="settings" [size]="18"></lucide-icon> Usuarios
+            </a>
+          </li>
+        }
       </ul>
 
       <button class="logout-btn" (click)="logout()">
@@ -85,7 +87,7 @@ import { LucideAngularModule } from 'lucide-angular';
       position: fixed;
       left: 0; top: 0; bottom: 0;
       width: 240px;
-      background: white;
+      background: var(--bg-card);
       border-right: 1px solid var(--border);
       display: flex;
       flex-direction: column;
@@ -99,6 +101,8 @@ import { LucideAngularModule } from 'lucide-angular';
       gap: 10px;
       padding: 0 20px 20px;
       border-bottom: 1px solid var(--border);
+      text-decoration: none;
+      cursor: pointer;
     }
     .sidebar-header h2 {
       font-size: 1.1rem;
@@ -183,7 +187,7 @@ import { LucideAngularModule } from 'lucide-angular';
       width: 40px; height: 40px;
       border: none;
       border-radius: 10px;
-      background: white;
+      background: var(--bg-card);
       box-shadow: var(--shadow-md);
       cursor: pointer;
       align-items: center;
@@ -196,7 +200,7 @@ import { LucideAngularModule } from 'lucide-angular';
       display: none;
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.3);
+      background: var(--overlay);
       z-index: 90;
     }
 
@@ -233,6 +237,7 @@ export class NavbarComponent {
 
   logout() {
     this.auth.logout();
+    this.cerrarMenu();
     this.router.navigate(['/login']);
   }
 }

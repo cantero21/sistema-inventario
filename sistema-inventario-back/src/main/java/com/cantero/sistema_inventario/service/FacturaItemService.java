@@ -1,42 +1,41 @@
 package com.cantero.sistema_inventario.service;
 
+import com.cantero.sistema_inventario.dto.FacturaItemResponse;
+import com.cantero.sistema_inventario.exception.ApiException;
 import com.cantero.sistema_inventario.model.FacturaItem;
 import com.cantero.sistema_inventario.repository.FacturaItemRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+/**
+ * Solo lectura: los ítems forman parte de una factura emitida y no deben
+ * modificarse por separado, porque alterarían el stock sin movimiento asociado.
+ */
 @Service
+@RequiredArgsConstructor
 public class FacturaItemService {
 
-    @Autowired
-    private FacturaItemRepository facturaItemRepository;
+    private final FacturaItemRepository facturaItemRepository;
 
-    public List<FacturaItem> getAll() {
-        return facturaItemRepository.findAll();
+    @Transactional(readOnly = true)
+    public List<FacturaItemResponse> getAll() {
+        return facturaItemRepository.findAll().stream()
+                .map(FacturaItemResponse::from)
+                .toList();
     }
 
-    public FacturaItem getById(Long id) {
-        return facturaItemRepository.findById(id).orElse(null);
+    @Transactional(readOnly = true)
+    public FacturaItemResponse getById(Long id) {
+        return FacturaItemResponse.from(obtenerItem(id));
     }
 
-    public FacturaItem save(FacturaItem item) {
-        return facturaItemRepository.save(item);
-    }
-
-    public FacturaItem update(Long id, FacturaItem item) {
+    private FacturaItem obtenerItem(Long id) {
         return facturaItemRepository.findById(id)
-                .map(existing -> {
-                    existing.setProducto(item.getProducto());
-                    existing.setCantidad(item.getCantidad());
-                    existing.setPrecioUnitario(item.getPrecioUnitario());
-                    existing.setFactura(item.getFactura());
-                    return facturaItemRepository.save(existing);
-                }).orElse(null);
-    }
-
-    public void delete(Long id) {
-        facturaItemRepository.deleteById(id);
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "FACTURA_ITEM_NO_ENCONTRADO",
+                        "Ítem de factura no encontrado con id " + id));
     }
 }

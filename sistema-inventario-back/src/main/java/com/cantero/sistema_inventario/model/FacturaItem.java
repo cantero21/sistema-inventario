@@ -38,6 +38,7 @@ public class FacturaItem {
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "producto_id")
+    @NotNull(message = "El producto es obligatorio")
     @JsonIgnoreProperties({"categoria", "proveedor"})
     private Producto producto;
 }

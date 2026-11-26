@@ -1,64 +1,85 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService, Cliente } from '../../services/api.service';
+import { AuthService } from '../../services/auth.service';
 import { LucideAngularModule } from 'lucide-angular';
+import { PaginadorComponent } from '../paginador/paginador.component';
+import { PaginacionService } from '../../services/paginacion.service';
 
 @Component({
   selector: 'app-clientes',
   standalone: true,
-  imports: [FormsModule, LucideAngularModule],
+  imports: [FormsModule, LucideAngularModule, PaginadorComponent],
   template: `
     <div class="page-header">
       <h1 class="page-title">
         <lucide-icon name="users" [size]="24"></lucide-icon>
         Clientes
       </h1>
-      <button class="btn btn-primary" (click)="abrirModal()">
-        <lucide-icon name="plus" [size]="16"></lucide-icon> Nuevo cliente
-      </button>
+      @if (auth.esAdmin()) {
+        <button class="btn btn-primary" (click)="abrirModal()">
+          <lucide-icon name="plus" [size]="16"></lucide-icon> Nuevo cliente
+        </button>
+      }
     </div>
 
-    <div class="card table-container">
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Nombre</th>
-            <th>Email</th>
-            <th>Teléfono</th>
-            <th>Dirección</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (c of clientes; track c.id) {
+    @if (error) {
+      <div class="alert-error">{{ error }}</div>
+    }
+
+    <div class="card">
+      <div class="table-container">
+        <table>
+          <thead>
             <tr>
-              <td class="td-id">{{ c.id }}</td>
-              <td><strong>{{ c.nombre }}</strong></td>
-              <td class="td-email">{{ c.email || '-' }}</td>
-              <td>{{ c.telefono || '-' }}</td>
-              <td class="td-desc">{{ c.direccion || '-' }}</td>
-              <td>
-                <div class="actions">
-                  <button class="btn-icon btn-icon-edit" title="Editar" (click)="editar(c)">
-                    <lucide-icon name="pencil" [size]="15"></lucide-icon>
-                  </button>
-                  <button class="btn-icon btn-icon-delete" title="Eliminar" (click)="eliminar(c.id!)">
-                    <lucide-icon name="trash-2" [size]="15"></lucide-icon>
-                  </button>
-                </div>
-              </td>
+              <th>ID</th>
+              <th>Nombre</th>
+              <th>Email</th>
+              <th>Teléfono</th>
+              <th>Dirección</th>
+              @if (auth.esAdmin()) {
+                <th>Acciones</th>
+              }
             </tr>
-          } @empty {
-            <tr>
-              <td colspan="6" class="empty">
-                <lucide-icon name="users" [size]="32"></lucide-icon>
-                <p>No hay clientes registrados</p>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            @for (c of clientesPagina; track c.id) {
+              <tr>
+                <td class="td-id">{{ c.id }}</td>
+                <td><strong>{{ c.nombre }}</strong></td>
+                <td class="td-email">{{ c.email || '-' }}</td>
+                <td>{{ c.telefono || '-' }}</td>
+                <td class="td-desc">{{ c.direccion || '-' }}</td>
+                @if (auth.esAdmin()) {
+                  <td>
+                    <div class="actions">
+                      <button class="btn-icon btn-icon-edit" title="Editar" (click)="editar(c)">
+                        <lucide-icon name="pencil" [size]="15"></lucide-icon>
+                      </button>
+                      <button class="btn-icon btn-icon-delete" title="Eliminar" (click)="eliminar(c.id!)">
+                        <lucide-icon name="trash-2" [size]="15"></lucide-icon>
+                      </button>
+                    </div>
+                  </td>
+                }
+              </tr>
+            } @empty {
+              <tr>
+                <td [attr.colspan]="auth.esAdmin() ? 6 : 5" class="empty">
+                  <lucide-icon name="users" [size]="32"></lucide-icon>
+                  <p>No hay clientes registrados</p>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <app-paginador
+        [totalItems]="clientes.length"
+        [page]="pagina"
+        [pageSize]="pageSize"
+        (pageChange)="cambiarPagina($event)"
+        (pageSizeChange)="cambiarPageSize($event)" />
     </div>
 
     @if (showModal) {
@@ -107,6 +128,16 @@ import { LucideAngularModule } from 'lucide-angular';
       margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
     }
     .page-title { margin-bottom: 0; }
+
+    .alert-error {
+      background: var(--danger-light);
+      color: var(--danger);
+      border: 1px solid var(--danger);
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 16px;
+      font-size: 0.9rem;
+    }
     .td-id { color: var(--text-light); font-size: 0.8rem; }
     .td-email { color: var(--primary-dark); }
     .td-desc { color: var(--text-light); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -117,9 +148,9 @@ import { LucideAngularModule } from 'lucide-angular';
       cursor: pointer; transition: all 0.2s; background: transparent;
     }
     .btn-icon-edit { color: var(--primary); background: var(--primary-light); }
-    .btn-icon-edit:hover { background: var(--primary); color: white; }
+    .btn-icon-edit:hover { background: var(--primary); color: var(--text-inverse); }
     .btn-icon-delete { color: var(--danger); background: var(--danger-light); }
-    .btn-icon-delete:hover { background: var(--danger); color: white; }
+    .btn-icon-delete:hover { background: var(--danger); color: var(--text-inverse); }
     .empty { text-align: center; color: var(--text-light); padding: 48px 16px !important; }
     .empty lucide-icon { opacity: 0.3; margin-bottom: 8px; }
     .empty p { font-size: 0.9rem; }
@@ -139,35 +170,82 @@ import { LucideAngularModule } from 'lucide-angular';
 })
 export class ClientesComponent implements OnInit {
   clientes: Cliente[] = [];
+
+  private paginacion = inject(PaginacionService);
+  pagina = 1;
+  pageSize = this.paginacion.getPageSize();
+
   showModal = false;
   editando = false;
   clienteId: number | null = null;
   form: Cliente = { nombre: '', direccion: '', telefono: '', email: '' };
+  error = '';
 
-  constructor(private api: ApiService) {}
+  constructor(private api: ApiService, public auth: AuthService) {}
+
+  get clientesPagina(): Cliente[] {
+    return this.paginacion.paginar(this.clientes, this.pagina, this.pageSize);
+  }
+
+  cambiarPagina(page: number) { this.pagina = page; }
+  cambiarPageSize(size: number) {
+    this.pageSize = size;
+    this.paginacion.setPageSize(size);
+    this.pagina = 1;
+  }
+
   ngOnInit() { this.cargar(); }
 
-  cargar() { this.api.getAll<Cliente>('clientes').subscribe(d => this.clientes = d); }
+  cargar() {
+    this.api.getAll<Cliente>('clientes').subscribe({
+      next: d => {
+        this.clientes = d;
+        this.pagina = this.paginacion.clampPage(this.pagina, d.length, this.pageSize);
+      },
+      error: (err) => {
+        this.error = err?.error?.detail || 'No se pudieron cargar los clientes.';
+      }
+    });
+  }
 
   abrirModal() {
+    this.error = '';
     this.form = { nombre: '', direccion: '', telefono: '', email: '' };
     this.editando = false; this.clienteId = null; this.showModal = true;
   }
 
   editar(c: Cliente) {
+    this.error = '';
     this.form = { ...c }; this.editando = true; this.clienteId = c.id!; this.showModal = true;
   }
 
   guardar() {
+    this.error = '';
     const req = this.editando
       ? this.api.update<Cliente>('clientes', this.clienteId!, this.form)
       : this.api.create<Cliente>('clientes', this.form);
-    req.subscribe(() => { this.cerrarModal(); this.cargar(); });
+    req.subscribe({
+      next: () => { this.cerrarModal(); this.cargar(); },
+      error: (err) => {
+        this.error = err?.error?.detail || 'No se pudo guardar el cliente.';
+      }
+    });
   }
 
   eliminar(id: number) {
-    if (confirm('¿Eliminar este cliente?')) this.api.delete('clientes', id).subscribe(() => this.cargar());
+    if (confirm('¿Eliminar este cliente?')) {
+      this.error = '';
+      this.api.delete('clientes', id).subscribe({
+        next: () => this.cargar(),
+        error: (err) => {
+          this.error = err?.error?.detail || 'No se pudo eliminar el cliente.';
+        }
+      });
+    }
   }
 
-  cerrarModal() { this.showModal = false; }
+  cerrarModal() {
+    this.error = '';
+    this.showModal = false;
+  }
 }

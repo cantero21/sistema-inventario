@@ -1,7 +1,6 @@
 package com.cantero.sistema_inventario.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -25,7 +24,7 @@ public class Cliente {
     private String email;
 
     @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @JsonIgnore
+    @JsonIgnore // Evita bucle infinito al pedir un Cliente
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     private List<Factura> facturas = new ArrayList<>();
